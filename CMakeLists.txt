@@ -5,5 +5,6 @@ set(CMAKE_CXX_STANDARD 17)
 
 include_directories(include)
 
-add_executable(ProcessA src/shm_server.cpp)
+add_executable(ProcessA src/process_a.cpp)
 add_executable(ProcessB src/process_b.cpp)
+add_executable(ProcessC src/process_c.cpp)

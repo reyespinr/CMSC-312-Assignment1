@@ -18,20 +18,24 @@ auto main() -> int
     std::cerr << "Retrying to attach to shared memory...\n";
   }
 
-  // Process logic after successful attachment
+  // Once attached, proceed with the rest of the process logic
   std::cout << "Attached to shared memory successfully.\n";
+
+  // Wait for Process B to complete
+  while (strcmp(proc_id_ptr, "B") != 0) {
+    usleep(500000);  // 0.5 seconds
+  }
+  //Extra delay to make sure A has time to print out and acknowledge B
+  usleep(500000);  // 0.5 seconds
 
   // Write PID to the first shared memory segment
   sprintf(pid_ptr, "%d", getpid());
 
   // Signal completion to Process A
-  strcpy(proc_id_ptr, "B");
+  strcpy(proc_id_ptr, "C");
 
   // Write message to the third shared memory segment
-  strcpy(message_ptr, "I am Process B");
-
-  // Delay to allow Process A to react
-  usleep(500000);  // 0.5 seconds
+  strcpy(message_ptr, "I am Process C");
 
   // Detach from shared memory
   shmdt(pid_ptr);
