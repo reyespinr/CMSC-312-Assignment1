@@ -15,11 +15,11 @@ auto main() -> int
          !attachToSharedMemory(shm_id_proc_id, proc_id_ptr) ||
          !attachToSharedMemory(shm_id_str, message_ptr)) {
     usleep(1000000);  // Wait for 1 second before trying again
-    std::cerr << "Retrying to attach to shared memory...\n";
+    // std::cerr << "Retrying to attach to shared memory...\n";
   }
 
   // Once attached, proceed with the rest of the process logic
-  std::cout << "Attached to shared memory successfully.\n";
+  // std::cout << "Attached to shared memory successfully.\n";
 
   // Wait for Process B to complete
   while (strcmp(proc_id_ptr, "B") != 0) {

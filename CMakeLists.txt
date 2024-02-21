@@ -8,3 +8,6 @@ include_directories(include)
 add_executable(ProcessA src/process_a.cpp)
 add_executable(ProcessB src/process_b.cpp)
 add_executable(ProcessC src/process_c.cpp)
+
+add_executable(SeparateForks src/separate_forks.cpp)
+add_executable(NestedForks src/nested_forks.cpp)
