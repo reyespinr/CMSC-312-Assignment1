@@ -42,7 +42,7 @@ auto main() -> int
   int msqid;
   key_t key;
 
-  if ((key = ftok("kirk.cpp", 'B')) == -1) {
+  if ((key = ftok("../src/kirk.cpp", 'B')) == -1) {
     std::cerr << "ftok error" << std::endl;
     return EXIT_FAILURE;
   }

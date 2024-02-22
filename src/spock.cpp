@@ -42,7 +42,7 @@ int main()
   int msqid;
   key_t key;
 
-  if ((key = ftok("kirk.cpp", 'B')) == -1) {
+  if ((key = ftok("../src/kirk.cpp", 'B')) == -1) {
     perror("ftok");
     exit(1);
   }
