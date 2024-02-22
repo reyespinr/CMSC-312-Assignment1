@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-const int PORT = 2080;
+const int PORT = 1452;
 const char * SERVER_IP = "127.0.0.1";
 
 std::vector<int> generateRandomNumbers(size_t count)
