@@ -21,3 +21,7 @@ add_executable(Kirk src/kirk.c)
 # Executables for Q4
 add_executable(NewSpock src/spock.cpp)
 add_executable(NewKirk src/kirk.cpp)
+
+# Executables for Q5
+add_executable(Server src/server.cpp)
+add_executable(Client src/client.cpp)
