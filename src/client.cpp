@@ -2,59 +2,66 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <cstring>
+#include <cstdlib>
+#include <ctime>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
+const int PORT = 2080;
 const char * SERVER_IP = "127.0.0.1";
-const int SERVER_PORT = 2080;
 
 std::vector<int> generateRandomNumbers(size_t count)
 {
   std::vector<int> numbers;
   for (size_t i = 0; i < count; ++i) {
-    numbers.push_back(rand() % 100);  // Generate numbers between 0 and 99
+    numbers.push_back(rand() % 100);
   }
   return numbers;
 }
 
-void sendNumbers(int sockfd, const std::vector<int> & numbers)
+std::string serializeNumbers(const std::vector<int> & numbers)
 {
-  for (int number : numbers) {
-    std::string message = std::to_string(number) + "\n";
-    send(sockfd, message.c_str(), message.size(), 0);
+  std::stringstream ss;
+  for (auto num : numbers) {
+    ss << num << " ";
   }
-  // Indicate the end of transmission
-  std::string endMessage = "end\n";
-  send(sockfd, endMessage.c_str(), endMessage.size(), 0);
+  return ss.str();
 }
 
 int main()
 {
-  srand(time(nullptr));  // Seed the random number generator
+  srand(time(nullptr));
+  int sock = 0;
+  struct sockaddr_in serv_addr;
 
-  int sock = socket(AF_INET, SOCK_STREAM, 0);
-  if (sock < 0) {
-    perror("Socket creation failed");
-    return 1;
+  std::cout << "Client: Setting up socket..." << std::endl;
+  if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+    std::cerr << "Socket creation error\n";
+    return -1;
   }
 
-  sockaddr_in serverAddress;
-  serverAddress.sin_family = AF_INET;
-  serverAddress.sin_port = htons(SERVER_PORT);
-  inet_pton(AF_INET, SERVER_IP, &serverAddress.sin_addr);
-
-  if (connect(sock, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) {
-    perror("Connection failed");
-    return 1;
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_port = htons(PORT);
+  if (inet_pton(AF_INET, SERVER_IP, &serv_addr.sin_addr) <= 0) {
+    std::cerr << "Invalid address/ Address not supported\n";
+    return -1;
   }
 
-  std::vector<int> numbers = generateRandomNumbers(10);  // Generate 10 random numbers
-  sendNumbers(sock, numbers);
+  std::cout << "Client: Connecting to server..." << std::endl;
+  if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+    std::cerr << "Connection Failed\n";
+    return -1;
+  }
 
-  // Close the socket
+  auto numbers = generateRandomNumbers(10);
+  auto message = serializeNumbers(numbers);
+  std::cout << "Client: Sending numbers to server: " << message << std::endl;
+  send(sock, message.c_str(), message.length(), 0);
+
+  std::cout << "Client: Waiting for server to sort numbers..." << std::endl;
+
   close(sock);
-
   return 0;
 }

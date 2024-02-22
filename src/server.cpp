@@ -1,96 +1,87 @@
 #include <netinet/in.h>
-#include <signal.h>
 #include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include <algorithm>
 #include <cstring>
 #include <iostream>
+#include <sstream>
 #include <vector>
 
-const int SERVER_PORT = 2080;
-const int BACKLOG = 10;
+const int PORT = 2080;
 
-void sortAndSendBackNumbers(int clientSock)
+void sortAndRespond(int new_socket)
 {
+  char buffer[1024] = {0};
+  read(new_socket, buffer, 1024);
+  std::cout << "Server: Received numbers from client: " << buffer << std::endl;
+
+  std::stringstream ss(buffer);
+  int n;
   std::vector<int> numbers;
-  char buffer[1024];
-
-  while (true) {
-    memset(buffer, 0, 1024);
-    ssize_t bytesReceived = recv(clientSock, buffer, 1023, 0);
-    if (bytesReceived <= 0) break;
-
-    std::string message(buffer);
-    if (message == "end\n") break;
-
-    int number = std::stoi(message);
-    numbers.push_back(number);
+  while (ss >> n) {
+    numbers.push_back(n);
   }
 
   std::sort(numbers.begin(), numbers.end());
-
-  for (int number : numbers) {
-    std::string message = std::to_string(number) + "\n";
-    send(clientSock, message.c_str(), message.size(), 0);
+  std::cout << "Server: Sorted numbers are: ";
+  for (auto num : numbers) {
+    std::cout << num << " ";
   }
+  std::cout << std::endl;
 
-  // Close the client socket
-  close(clientSock);
-}
-
-void signalHandler(int signal)
-{
-  wait(NULL);  // Clean up child processes
+  // No need to send sorted numbers back to the client, just acknowledge
+  const char * msg = "Numbers sorted and printed by server.";
+  send(new_socket, msg, strlen(msg), 0);
+  close(new_socket);
 }
 
 int main()
 {
-  signal(SIGCHLD, signalHandler);  // To avoid zombie processes
+  int server_fd, new_socket;
+  struct sockaddr_in address;
+  int opt = 1;
+  int addrlen = sizeof(address);
 
-  int serverSock = socket(AF_INET, SOCK_STREAM, 0);
-  if (serverSock < 0) {
-    perror("Socket creation failed");
-    return 1;
+  std::cout << "Server: Setting up socket..." << std::endl;
+  if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+    perror("socket failed");
+    exit(EXIT_FAILURE);
   }
 
-  sockaddr_in serverAddress;
-  serverAddress.sin_family = AF_INET;
-  serverAddress.sin_addr.s_addr = INADDR_ANY;
-  serverAddress.sin_port = htons(SERVER_PORT);
-
-  if (bind(serverSock, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) {
-    perror("Bind failed");
-    return 1;
+  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
+    perror("setsockopt");
+    exit(EXIT_FAILURE);
   }
 
-  if (listen(serverSock, BACKLOG) < 0) {
-    perror("Listen failed");
-    return 1;
+  address.sin_family = AF_INET;
+  address.sin_addr.s_addr = INADDR_ANY;
+  address.sin_port = htons(PORT);
+
+  if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+    perror("bind failed");
+    exit(EXIT_FAILURE);
   }
 
-  while (true) {
-    int clientSock = accept(serverSock, NULL, NULL);
-    if (clientSock < 0) {
-      perror("Accept failed");
-      continue;
+  if (listen(server_fd, 3) < 0) {
+    perror("listen");
+    exit(EXIT_FAILURE);
+  }
+
+  std::cout << "Server: Listening for connections..." << std::endl;
+  while ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen))) {
+    if (new_socket < 0) {
+      perror("accept");
+      exit(EXIT_FAILURE);
     }
 
-    pid_t pid = fork();
-    if (pid < 0) {
-      perror("Fork failed");
-      close(clientSock);
-    } else if (pid == 0) {
-      // Child process
-      close(serverSock);
-      sortAndSendBackNumbers(clientSock);
+    std::cout << "Server: Connection accepted. Forking for client..." << std::endl;
+    int pid = fork();
+    if (pid == 0) {  // Child process
+      sortAndRespond(new_socket);
       exit(0);
-    } else {
-      // Parent process
-      close(clientSock);
     }
+    // Parent process continues to listen for new connections
   }
 
   return 0;
